@@ -1,0 +1,7 @@
+error: custom attribute panicked
+ --> tests/03-non-bool-return-type.rs:3:1
+  |
+3 | #[lookup]
+  | ^^^^^^^^^
+  |
+  = help: message: return type isn't one of bool, u8, u16, u32

@@ -1,0 +1,7 @@
+error: constable: function must be const
+ --> tests/02-non-const-fn.rs:3:1
+  |
+3 | #[lookup]
+  | ^^^^^^^^^
+  |
+  = note: this error originates in the attribute macro `lookup` (in Nightly builds, run with -Z macro-backtrace for more info)
