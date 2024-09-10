@@ -1,31 +1,31 @@
+# https://doc.rust-lang.org/cargo/reference/manifest.html
 [package]
 name = "constable"
+version = "0.1.1"
 description = "const lookup table generation"
-autotests = false # very important for try-build tests
+autotests = false # for try-build tests
 edition = "2021"
+include = ["/src"]
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/richardscollin/constable"
-version = "0.1.0"
 rust-version = "1.79" # inline const
 
-# note: see more `Cargo.toml` keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-
-[lib]
-proc-macro = true
-
-[dependencies]
-quote = "1.0.36"
-syn = { version = "2.0.68", features = ["full"] }
-
-[dev-dependencies]
-trybuild = { version = "1.0.49", features = ["diff"] }
-divan = "0.1.14"
-rand = "0.8.5"
+[[bench]]
+name = "bench"
+harness = false
 
 [[test]]
 name = "tests"
 path = "tests/tests.rs"
 
-[[bench]]
-name = "bench"
-harness = false
+[dependencies]
+quote = "1.0.25"
+syn = { version = "2.0", features = ["full"] }
+
+[dev-dependencies]
+trybuild = { version = "1.0.99", features = ["diff"] }
+divan = "0.1.14"
+rand = "0.8.5"
+
+[lib]
+proc-macro = true
