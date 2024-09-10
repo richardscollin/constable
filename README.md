@@ -1,6 +1,6 @@
 # Constable
 
-Generate lookup tables at compile time using an annotations on const functions.
+Generate lookup tables at compile time using attribute macros on const functions.
 
 ## Example
 
