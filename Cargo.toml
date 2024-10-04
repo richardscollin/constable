@@ -1,7 +1,7 @@
 # https://doc.rust-lang.org/cargo/reference/manifest.html
 [package]
 name = "constable"
-version = "0.1.1"
+version = "0.1.2"
 description = "const lookup table generation"
 autotests = false # for try-build tests
 edition = "2021"

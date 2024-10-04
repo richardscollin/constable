@@ -5,12 +5,12 @@
 // https://users.rust-lang.org/t/checking-whether-four-2-bit-uints-are-unique-how-to-optimize/113834/12
 // https://veykril.github.io/tlborm/proc-macros/methodical/attr.html
 use proc_macro::TokenStream;
-use syn::{parse_macro_input, spanned::Spanned as _, ItemFn};
+use syn::{parse_macro_input, spanned::Spanned as _, ItemFn, Visibility};
 
 /// Generate a compile time lookup table given a const function
 ///
 /// The const function is currently only allowed to accept a single parameter of type
-/// u8 and return type of bool, u8, u16, or u32
+/// u8 and return type of bool, u8, u16, or u32, u64
 ///
 /// # Example:
 /// ```
@@ -29,6 +29,8 @@ use syn::{parse_macro_input, spanned::Spanned as _, ItemFn};
 ///     let x = foo(5);
 /// }
 /// ```
+///
+/// known issues (doesn't support recursion)
 ///
 ///
 #[proc_macro_attribute]
@@ -49,11 +51,11 @@ pub fn lookup(_: TokenStream, input: TokenStream) -> TokenStream {
     // 2. restrict return type
     let return_type = match &input.sig.output {
         syn::ReturnType::Default => None,
-        syn::ReturnType::Type(_, ty) => {
+        syn::ReturnType::Type(_right_arrow, ty) => {
             if let syn::Type::Path(type_path) = ty as &syn::Type {
                 let ident = type_path.path.segments.last().unwrap().ident.to_string();
                 match ident.as_str() {
-                    "bool" | "u8" | "u16" | "u32" => Some(ident.as_str().to_owned()),
+                    "bool" | "u8" | "u16" | "u32" | "u64" => Some(ident.as_str().to_owned()),
                     _ => None,
                 }
             } else {
@@ -62,11 +64,11 @@ pub fn lookup(_: TokenStream, input: TokenStream) -> TokenStream {
         }
     };
     let Some(return_type) = return_type else {
-        panic!("return type isn't one of bool, u8, u16, u32");
+        panic!("return type isn't one of bool, u8, u16, u32, u64");
     };
 
     // 3. restrict to single input param of type u8
-    let Some(input_type) = (|| {
+    let Some(_input_type) = (|| {
         let params = &input.sig.inputs;
 
         if params.len() != 1 {
@@ -91,16 +93,18 @@ pub fn lookup(_: TokenStream, input: TokenStream) -> TokenStream {
     // rewrite the function by wrapping with a table
     let mut inner_const_fn = input.clone();
     let name = input.sig.ident.clone();
+    let vis = input.vis.clone();
 
     let inner_const_fn_name = syn::Ident::new(&format!("{name}_orig"), name.span());
     inner_const_fn.sig.ident = inner_const_fn_name.clone();
+    inner_const_fn.vis = Visibility::Inherited;
 
     match return_type.as_str() {
         "bool" => {
             // this version does bitpacking
             quote::quote! {
                 #[inline]
-                pub const fn #name(value: u8) -> bool {
+                #vis const fn #name(value: u8) -> bool {
                     #inner_const_fn
 
                     type T = u8;
@@ -131,12 +135,20 @@ pub fn lookup(_: TokenStream, input: TokenStream) -> TokenStream {
             }
             .into()
         }
-        "u8" | "u16" | "u32" => {
-            let in_type = input_type.to_string();
-            let out_type = return_type.to_string();
+        "u8" | "u16" | "u32" | "u64" => {
+            let in_arg = input.sig.inputs[0].clone();
+            let in_type = match in_arg {
+                syn::FnArg::Receiver(_receiver) => panic!("self is not a supported arg"),
+                syn::FnArg::Typed(pat_type) => pat_type.ty,
+            };
+
+            let out_type = match input.sig.output {
+                syn::ReturnType::Default => panic!("requires return type"),
+                syn::ReturnType::Type(_rarrow, ret_type) => ret_type,
+            };
             quote::quote! {
             #[inline]
-            pub const fn #name(value: u8) -> bool {
+            #vis const fn #name(value: #in_type) -> #out_type {
                 #inner_const_fn
 
                 type T = #in_type;
